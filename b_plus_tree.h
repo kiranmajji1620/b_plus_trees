@@ -37,6 +37,7 @@ private:
         if(y -> leaf){
             z -> n++;
             middleStart = -1;
+            y -> children[ORDER - 1] = z;
         }
         // If the node we are splitting is an internal node, there is no change, we just copy the last half elements.
         for(int j = 0; j < z -> n; j++){ // In case of odd no of keys, we start at the middle element. right half in case of even elements.
@@ -83,21 +84,37 @@ private:
             insertNonFull(x -> children[i], k);
         }
     }
-    void traverse(BTreeNode<T, ORDER>* x){ // InOrder traversal of b tree
+    void traverse_in_order(BTreeNode<T, ORDER>* x){ // InOrder traversal of b tree
         // cout << "no of keys in x : " << x -> n << endl;
         int i;
         for(i = 0; i < x -> n; i++){
             if(!x -> leaf){
                 // cout << "Traversing to child " << x -> keys[i] << endl;
-                traverse(x -> children[i]);
+                traverse_in_order(x -> children[i]);
             }
             cout << x -> keys[i] << " ";
         }
         if(!x -> leaf){ // Traversing the last sub tree.
-            traverse(x -> children[i]);
+            traverse_in_order(x -> children[i]);
         }
         // cout << endl;
         // cout << "completed one level" << endl;
+    }
+    void traverse_keys(BTreeNode<T, ORDER>* x){
+        if(x -> leaf){
+            for(int i = 0; i < x -> n; i++){
+                cout << x->keys[i] << " ";
+            }
+            if(x -> children[ORDER - 1] != nullptr){
+                traverse_keys(x -> children[ORDER - 1]);
+            }
+        }
+        else {
+            while(!x -> leaf){
+                x = x -> children[0];
+            }
+            traverse_keys(x);
+        }
     }
     BTreeNode<T, ORDER>* search(BTreeNode<T, ORDER>* x, T k){
         int i = 0;
@@ -298,9 +315,17 @@ public:
         }
     }
     void traverse(){
+        cout << "In Order Traversal : " << endl;
         // cout << "root " << root -> keys[0] << endl;
         if(root){
-            traverse(root);
+            traverse_in_order(root);
+        }
+        cout << endl;
+    }
+    void traverse_range(){
+        cout << "Range Based Traversal : " << endl;
+        if(root){
+            traverse_keys(root);
         }
         cout << endl;
     }
@@ -351,7 +376,7 @@ public:
                     cout << tempNode -> keys[i] << " ";
                 }
                 for(int i = 0; i < noOfKeys + 1; i++){
-                    if(tempNode -> children[i]){
+                    if(!tempNode -> leaf && tempNode -> children[i]){
                         que.push(tempNode -> children[i]);
                     }
                 }
