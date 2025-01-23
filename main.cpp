@@ -3,7 +3,7 @@
 
 int main(){
     // Keep the order even just to avoid the violation of rules of a btree while splitting an internal node.
-    BTree<int, 6> t;
+    BTree<int, 4> t;
     t.showEveryOpn = false;
     t.insert(10);
     t.insert(11);
@@ -37,7 +37,13 @@ int main(){
         cout << "Now that root(13) has been merged into first child(2)  and no of keys in root is 0, create a new root and assign it to the first child(2)." << endl;
         t.remove(2);
     }
-    t.traverse();
-    t.traverse_range();
+    
+    // t.in_order_traversal();
+    cout << "Range based traversal, with limits" << endl;
+    t.range_traversal(10, 16);
+    cout << "Range based traversal, limits lying outside : " << endl;
+    t.range_traversal(9, 14.6);
+    cout << "Range based traversal, without specifying limits : " << endl;
+    t.range_traversal();
     return 0;
 }

@@ -37,6 +37,7 @@ private:
         if(y -> leaf){
             z -> n++;
             middleStart = -1;
+            z -> children[ORDER - 1] = y -> children[ORDER - 1];
             y -> children[ORDER - 1] = z;
         }
         // If the node we are splitting is an internal node, there is no change, we just copy the last half elements.
@@ -116,6 +117,22 @@ private:
             traverse_keys(x);
         }
     }
+    void traverse_start_end(int start, int end){
+        BTreeNode<T, ORDER>* x = search(root, start);
+        while(x){
+            for(int i = 0; i < x -> n; i++){
+                if(x -> keys[i] >= start && x -> keys[i] <= end){
+                    cout << x -> keys[i] << " ";
+                }
+            }
+            if(x -> children[ORDER - 1] != nullptr){
+                x = x -> children[ORDER - 1];
+            }
+            else {
+                break;
+            }
+        }
+    }
     BTreeNode<T, ORDER>* search(BTreeNode<T, ORDER>* x, T k){
         int i = 0;
         while(i < x -> n && k > x -> keys[i]){
@@ -127,7 +144,8 @@ private:
             return x;
         }
         if(x -> leaf){
-            return nullptr;
+            // cout << "Node not found, could exist in the returned node " << endl; 
+            return x;
         }
         return search(x -> children[i], k);
     }
@@ -314,7 +332,7 @@ public:
             BFS();
         }
     }
-    void traverse(){
+    void in_order_traversal(){
         cout << "In Order Traversal : " << endl;
         // cout << "root " << root -> keys[0] << endl;
         if(root){
@@ -322,10 +340,10 @@ public:
         }
         cout << endl;
     }
-    void traverse_range(){
-        cout << "Range Based Traversal : " << endl;
+    void range_traversal(int start = INT_MIN, int end = INT_MAX){
+        cout << "Range Traversal" << endl;
         if(root){
-            traverse_keys(root);
+            traverse_start_end(start, end);
         }
         cout << endl;
     }
