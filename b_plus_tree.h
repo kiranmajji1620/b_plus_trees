@@ -33,6 +33,7 @@ private:
         }
         y -> n = ORDER/2 - 1; // just change the no of keys instead of removing them.
         // To implement a b+ tree, we need to add the parent promoted key to the next child to ensure that the range queries happen. In order to support this, copy the middle key of y to the first child of z.
+        // If we are splitting a leaf node, we start from middle element. In case of internal node, we start from middle element + 1. so in case of leaf node, ORDER/2 - 1 which is the middle element.
         int middleStart = 0;
         if(y -> leaf){
             z -> n++;
@@ -101,23 +102,8 @@ private:
         // cout << endl;
         // cout << "completed one level" << endl;
     }
-    void traverse_keys(BTreeNode<T, ORDER>* x){
-        if(x -> leaf){
-            for(int i = 0; i < x -> n; i++){
-                cout << x->keys[i] << " ";
-            }
-            if(x -> children[ORDER - 1] != nullptr){
-                traverse_keys(x -> children[ORDER - 1]);
-            }
-        }
-        else {
-            while(!x -> leaf){
-                x = x -> children[0];
-            }
-            traverse_keys(x);
-        }
-    }
     void traverse_start_end(int start, int end){
+        // get the node that contains the start element and then linear traverse from there.
         BTreeNode<T, ORDER>* x = search(root, start);
         while(x){
             for(int i = 0; i < x -> n; i++){
@@ -201,6 +187,9 @@ private:
             child -> children[0] = sibling -> children[sibling -> n];
         }
         node -> keys[ind - 1] = sibling -> keys[sibling -> n - 1];
+        if(child -> leaf){
+            child -> keys[0] = node -> keys[ind - 1];
+        }
         sibling -> n -= 1;
         child -> n += 1;
     }
@@ -221,6 +210,9 @@ private:
                 sibling -> children[i - 1] = sibling -> children[i];
             }
         }
+        if(child -> leaf){
+            node -> keys[ind] = sibling -> keys[0];
+        }
         sibling -> n -= 1;
         child -> n += 1;
     }
@@ -231,13 +223,19 @@ private:
         BTreeNode<T, ORDER>* sibling = node -> children[ind + 1];
 
         int n = child -> n;
-        child -> keys[n] = node -> keys[ind];
+        int flag = 1;
+        if(child -> leaf){
+            flag = 0;
+        }
+        if(flag){
+            child -> keys[n] = node -> keys[ind];
+        }
         for(int i = 0; i < sibling -> n; i++){
-            child -> keys[n + i + 1] = sibling -> keys[i];
+            child -> keys[n + i + flag] = sibling -> keys[i];
         }
         if(!child -> leaf){
             for(int i = 0; i <= sibling -> n; i++){
-                child -> children[n + i + 1] = sibling -> children[i];
+                child -> children[n + i + flag] = sibling -> children[i];
             }
         }
         // For keys, i starts from ind + 1, meaning that, in the parent if we merge child 0 with child 1, key 1 will be shifted left and key 0 will be lost in the parent and it is already backed up by storing in the left child as shown above.
@@ -248,27 +246,57 @@ private:
         for(int i = ind + 2; i <= node -> n; i++){
             node -> children[i - 1] = node -> children[i];
         }
-        child -> n += sibling -> n + 1; // because we merged both children and we also pushed the parent key.
+        child -> n += sibling -> n + flag; // because we merged both children and we also pushed the parent key.
+        if(child -> leaf){
+            child -> children[ORDER - 1] = sibling -> children[ORDER - 1];
+            // remove(root, node -> keys[ind]);
+        }
         node -> n--;
         delete sibling;
     }
 
     void removeFromNonLeaf(BTreeNode<T, ORDER>* node, int ind){
+        // T k = node -> keys[ind];
+        // if(node -> children[ind]->n >= ORDER/2){ // We make this check as to ensure that the subtree can handle the deletion of the predecessor.
+        //     T pred = getPredecessor(node, ind);
+        //     node -> keys[ind] = pred;
+        //     remove(node -> children[ind], pred);
+        // }
+        // else if(node -> children[ind + 1] -> n >= ORDER/2){
+        //     T succ = getSuccesor(node, ind);
+        //     node -> keys[ind] = succ;
+        //     remove(node -> children[ind + 1], succ);
+        // }
+        // else {
+        //     merge(node, ind);
+        //     remove(node -> children[ind], k);
+        // }
         T k = node -> keys[ind];
-        if(node -> children[ind]->n >= ORDER/2){ // We make this check as to ensure that the subtree can handle the deletion of the predecessor.
-            T pred = getPredecessor(node, ind);
-            node -> keys[ind] = pred;
-            remove(node -> children[ind], pred);
+        if(node -> children[ind + 1] -> leaf && node -> children[ind + 1] -> n < ORDER/2){
+            cout << "filling for a leaf node " << node -> keys[0] << endl;
+            fill(node, ind + 1); 
+            cout << "After filling the leaf nodes : " << endl;
+            BFS();
         }
-        else if(node -> children[ind + 1] -> n >= ORDER/2){
-            T succ = getSuccesor(node, ind);
-            node -> keys[ind] = succ;
-            remove(node -> children[ind + 1], succ);
+        // Now remove the key k from the leaf.
+        remove(node -> children[ind + 1], k);
+        // cout << "hai"  << k << endl;
+        // BFS();
+        // Replace the occurence of k with it's successor.
+        BTreeNode<T, ORDER>* iNode = search(root, k);
+        // cout << iNode -> keys[0] << endl;
+        // In case k has gone to leaf node for merging purpose, remove k as a leaf node key.
+        if(iNode -> leaf){
+            remove(iNode, k);
+            return;
         }
-        else {
-            merge(node, ind);
-            remove(node -> children[ind], k);
+        int i = 0;
+        while(i < iNode -> n && iNode -> keys[i] < k){
+            i++;
         }
+        // Even though we get the key from current node, balancing might happen due to filling. so we find the right node again.
+        T succ = getSuccesor(iNode, i);
+        iNode -> keys[i] = succ;
     }
     //Removing a key from a node.
     void removeFromLeaf(BTreeNode<T, ORDER>* node, int ind){
@@ -351,6 +379,7 @@ public:
         BTreeNode<T, ORDER>* nodeFound = search(root, k);
         if(search(root, k)){
             cout << "We have found the value at " << nodeFound << endl;
+            cout << "The no of elements is : " << nodeFound -> n << endl;
         }
         else {
             cout << "Couldn't find the value." << endl;
